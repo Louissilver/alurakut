@@ -65,12 +65,25 @@ export default function Home() {
     const dadosForm = new FormData(event.target);
 
     const comunidade = {
-      titulo: dadosForm.get('title'),
-      imagem: dadosForm.get('image'),
+      title: dadosForm.get('title'),
+      imageUrl: dadosForm.get('image'),
+      creatorSlug: usuario,
     }
 
-    const comunidadesAtualizadas = [...comunidades, comunidade];
-    setComunidades(comunidadesAtualizadas);
+    fetch('/api/comunidades', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(comunidade)
+    })
+      .then(async (response) => {
+        const dados = await response.json();
+        const comunidade = dados.registroCriado;
+        const comunidadesAtualizadas = [...comunidades, comunidade];
+        setComunidades(comunidadesAtualizadas);
+      })
+    event.target.reset();
   }
 
   useEffect(() => {
@@ -80,7 +93,27 @@ export default function Home() {
       })
       .then(function (json) {
         setSeguidores(json);
-      })
+      });
+
+    fetch('https://graphql.datocms.com/', {
+      method: 'POST',
+      headers: {
+        'Authorization': '8df5f7168a947bc42faf9b8b73df0a',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        'query': `query {
+          allCommunities{
+            title
+            id
+            imageUrl
+            creatorSlug
+          }
+        }` })
+    })
+      .then((response) => response.json())
+      .then((json) => setComunidades(json.data.allCommunities))
   }, []);
 
   return (
@@ -149,10 +182,10 @@ export default function Home() {
               <ul>
                 {comunidades.map((comunidade, index) => {
                   return (
-                    <li key={index}>
-                      <a href={`/users/${comunidade.titulo}`} key={comunidade.titulo}>
-                        <img src={`${comunidade.imagem}`} />
-                        <span>{comunidade.titulo}</span>
+                    <li key={`${comunidade.id}`}>
+                      <a href={`/users/${comunidade.title}`} key={comunidade.title}>
+                        <img src={`${comunidade.imageUrl}`} />
+                        <span>{comunidade.title}</span>
                       </a>
                     </li>
                   )
